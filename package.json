@@ -1,0 +1,39 @@
+{
+  "name": "raycast-keepass",
+  "title": "KeePass HTTP",
+  "description": "Search KeePass entries via a KeePass HTTP server",
+  "author": "OpenAI",
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "search-keepass",
+      "title": "Search KeePass",
+      "description": "Search KeePass entries from a KeePass HTTP server",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "baseUrl",
+      "type": "textfield",
+      "title": "KeePass HTTP Server URL",
+      "description": "Base URL for the KeePass HTTP server (e.g. http://localhost:19455)",
+      "required": true
+    },
+    {
+      "name": "apiKey",
+      "type": "password",
+      "title": "API Key",
+      "description": "Optional API key or bearer token for the KeePass HTTP server",
+      "required": false
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.83.0",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "typescript": "^5.3.3"
+  }
+}
