@@ -19,13 +19,40 @@ export default function Command() {
   const [searchText, setSearchText] = useState("");
   const [entries, setEntries] = useState<KeepassEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [needsAssociation, setNeedsAssociation] = useState<boolean | null>(null);
+  const [isAssociating, setIsAssociating] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const checkAssociation = async () => {
+      try {
+        const hasKey = await client.hasSharedKey();
+        setNeedsAssociation(!hasKey);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to check KeePass association status.";
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "KeePass HTTP Error",
+          message,
+        });
+        setNeedsAssociation(true);
+      }
+    };
+
+    checkAssociation();
+  }, [client]);
 
   useEffect(() => {
     const runTest = async () => {
       try {
         await client.testAssociate();
+        setNeedsAssociation(false);
       } catch (error) {
+        if (error instanceof Error && error.message === "KeePass HTTP association required.") {
+          setNeedsAssociation(true);
+          return;
+        }
         const message = error instanceof Error ? error.message : "Failed to test KeePass access.";
         await showToast({
           style: Toast.Style.Failure,
@@ -38,12 +65,42 @@ export default function Command() {
     runTest();
   }, [client]);
 
+  const requestAssociation = async () => {
+    if (isAssociating) {
+      return;
+    }
+    setIsAssociating(true);
+    try {
+      await client.associate();
+      setNeedsAssociation(false);
+      await showToast({
+        style: Toast.Style.Animated,
+        title: "Approve KeePass Association",
+        message: "Please approve the association request in KeePass.",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to request association.";
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "KeePass HTTP Error",
+        message,
+      });
+    } finally {
+      setIsAssociating(false);
+    }
+  };
+
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
     debounceRef.current = setTimeout(async () => {
+      if (needsAssociation !== false) {
+        setEntries([]);
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         const results = await client.getLogins(searchText);
@@ -70,10 +127,27 @@ export default function Command() {
 
   return (
     <List
-      isLoading={isLoading}
+      isLoading={isLoading || needsAssociation === null}
       onSearchTextChange={setSearchText}
       searchBarPlaceholder="Search KeePass entries"
       throttle
+      emptyView={
+        needsAssociation ? (
+          <List.EmptyView
+            title="Approve KeePass Association"
+            description="Request association and approve it in KeePass to continue."
+            actions={
+              <ActionPanel>
+                <Action
+                  title={isAssociating ? "Requesting Association..." : "Request Association"}
+                  icon={Icon.Key}
+                  onAction={requestAssociation}
+                />
+              </ActionPanel>
+            }
+          />
+        ) : undefined
+      }
     >
       {entries.map((entry) => (
         <List.Item
