@@ -16,20 +16,26 @@ export type KeepassEntry = {
 type KeepassHttpEntry = {
   UUID?: string;
   Uuid?: string;
+  uuid?: string;
   Name?: string;
   Title?: string;
+  title?: string;
   Login?: string;
   Username?: string;
+  username?: string;
   Password?: string;
+  password?: string;
   URL?: string;
   Url?: string;
+  url?: string;
   Notes?: string;
+  notes?: string;
   StringFields?: Record<string, string>;
 };
 
 type KeepassHttpResponse = {
   Entries?: KeepassHttpEntry[];
-  entries?: KeepassEntry[];
+  entries?: KeepassHttpEntry[];
   Key?: string;
   key?: string;
   Success?: boolean;
@@ -70,13 +76,18 @@ async function sendRequest<T extends KeepassHttpResponse>(
 function mapEntry(entry: KeepassHttpEntry): KeepassEntry {
   const stringFields = entry.StringFields ?? {};
   return {
-    uuid: entry.UUID ?? entry.Uuid,
-    title: entry.Title ?? entry.Name ?? "Untitled",
+    uuid: entry.uuid ?? entry.UUID ?? entry.Uuid,
+    title: entry.title ?? entry.Title ?? entry.Name ?? "Untitled",
     username:
-      entry.Username ?? entry.Login ?? stringFields.UserName ?? stringFields.username ?? undefined,
-    password: entry.Password ?? stringFields.Password ?? undefined,
-    url: entry.Url ?? entry.URL,
-    notes: entry.Notes,
+      entry.username ??
+      entry.Username ??
+      entry.Login ??
+      stringFields.UserName ??
+      stringFields.username ??
+      undefined,
+    password: entry.password ?? entry.Password ?? stringFields.Password ?? undefined,
+    url: entry.url ?? entry.Url ?? entry.URL,
+    notes: entry.notes ?? entry.Notes,
   };
 }
 
@@ -146,11 +157,7 @@ export function createKeepassHttpClient(preferences: Preferences) {
     }
 
     const response = await sendRequest<KeepassHttpResponse>(baseUrl, payload);
-    if (Array.isArray(response.entries)) {
-      return response.entries;
-    }
-
-    const entries = response.Entries ?? [];
+    const entries = response.entries ?? response.Entries ?? [];
     return entries.map(mapEntry);
   }
 
