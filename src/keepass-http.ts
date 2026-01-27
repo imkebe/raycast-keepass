@@ -36,7 +36,7 @@ type KeepassHttpResponse = {
   Error?: string;
 };
 
-const STORAGE_KEY = "keepass-http-shared-key";
+const STORAGE_KEY_PREFIX = "keepass-http-shared-key";
 
 function requireBaseUrl(preferences: Preferences): string {
   const baseUrl = preferences.baseUrl.trim();
@@ -80,20 +80,21 @@ function mapEntry(entry: KeepassHttpEntry): KeepassEntry {
   };
 }
 
-async function getSharedKey(): Promise<string | null> {
-  const key = await LocalStorage.getItem<string>(STORAGE_KEY);
-  if (typeof key === "string" && key.trim()) {
-    return key;
-  }
-  return null;
-}
-
-async function setSharedKey(key: string): Promise<void> {
-  await LocalStorage.setItem(STORAGE_KEY, key);
-}
-
 export function createKeepassHttpClient(preferences: Preferences) {
   const baseUrl = requireBaseUrl(preferences);
+  const storageKey = `${STORAGE_KEY_PREFIX}:${baseUrl}`;
+
+  async function getSharedKey(): Promise<string | null> {
+    const key = await LocalStorage.getItem<string>(storageKey);
+    if (typeof key === "string" && key.trim()) {
+      return key;
+    }
+    return null;
+  }
+
+  async function setSharedKey(key: string): Promise<void> {
+    await LocalStorage.setItem(storageKey, key);
+  }
 
   async function associate(): Promise<string> {
     const response = await sendRequest<KeepassHttpResponse>(baseUrl, {
