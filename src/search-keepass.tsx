@@ -21,7 +21,7 @@ export default function Command() {
   const [isLoading, setIsLoading] = useState(false);
   const [needsAssociation, setNeedsAssociation] = useState<boolean | null>(null);
   const [isAssociating, setIsAssociating] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const checkAssociation = async () => {
