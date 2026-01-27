@@ -9,64 +9,34 @@ import {
 } from "@raycast/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type Preferences = {
-  baseUrl: string;
-  apiKey?: string;
-};
-
-type KeepassEntry = {
-  uuid?: string;
-  title: string;
-  username?: string;
-  password?: string;
-  url?: string;
-  notes?: string;
-};
-
-type KeepassResponse = {
-  entries?: KeepassEntry[];
-};
+import { createKeepassHttpClient, Preferences, type KeepassEntry } from "./keepass-http";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
-async function fetchEntries(query: string, preferences: Preferences): Promise<KeepassEntry[]> {
-  const baseUrl = preferences.baseUrl.trim();
-  if (!baseUrl) {
-    throw new Error("Missing KeePass HTTP server URL.");
-  }
-
-  const url = new URL("/entries", baseUrl);
-  if (query.trim()) {
-    url.searchParams.set("query", query.trim());
-  }
-
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-  };
-
-  if (preferences.apiKey) {
-    headers.Authorization = `Bearer ${preferences.apiKey}`;
-  }
-
-  const response = await fetch(url.toString(), { headers });
-  if (!response.ok) {
-    throw new Error(`Server responded with ${response.status}`);
-  }
-
-  const data = (await response.json()) as KeepassResponse | KeepassEntry[];
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  return data.entries ?? [];
-}
-
 export default function Command() {
   const preferences = useMemo(() => getPreferenceValues<Preferences>(), []);
+  const client = useMemo(() => createKeepassHttpClient(preferences), [preferences]);
   const [searchText, setSearchText] = useState("");
   const [entries, setEntries] = useState<KeepassEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const runTest = async () => {
+      try {
+        await client.testAssociate();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to test KeePass access.";
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "KeePass HTTP Error",
+          message,
+        });
+      }
+    };
+
+    runTest();
+  }, [client]);
 
   useEffect(() => {
     if (debounceRef.current) {
@@ -76,7 +46,7 @@ export default function Command() {
     debounceRef.current = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const results = await fetchEntries(searchText, preferences);
+        const results = await client.getLogins(searchText);
         setEntries(results);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load entries.";
@@ -96,7 +66,7 @@ export default function Command() {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [preferences, searchText]);
+  }, [client, searchText]);
 
   return (
     <List
