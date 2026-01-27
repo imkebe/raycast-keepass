@@ -19,13 +19,6 @@
       "title": "KeePass HTTP Server URL",
       "description": "Base URL for the KeePass HTTP server (e.g. http://localhost:19455)",
       "required": true
-    },
-    {
-      "name": "apiKey",
-      "type": "password",
-      "title": "API Key",
-      "description": "Optional API key or bearer token for the KeePass HTTP server",
-      "required": false
     }
   ],
   "dependencies": {
