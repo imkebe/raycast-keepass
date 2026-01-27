@@ -1,4 +1,4 @@
-import { LocalStorage, Toast, showToast } from "@raycast/api";
+import { LocalStorage } from "@raycast/api";
 
 export type Preferences = {
   baseUrl: string;
@@ -121,21 +121,21 @@ export function createKeepassHttpClient(preferences: Preferences) {
     return key;
   }
 
-  async function ensureKey(): Promise<string> {
+  async function hasSharedKey(): Promise<boolean> {
+    const existing = await getSharedKey();
+    return existing !== null;
+  }
+
+  async function requireSharedKey(): Promise<string> {
     const existing = await getSharedKey();
     if (existing) {
       return existing;
     }
-    await showToast({
-      style: Toast.Style.Animated,
-      title: "Approve KeePass Association",
-      message: "Please approve the association request in KeePass.",
-    });
-    return associate();
+    throw new Error("KeePass HTTP association required.");
   }
 
   async function testAssociate(): Promise<void> {
-    const key = await ensureKey();
+    const key = await requireSharedKey();
     const response = await sendRequest<KeepassHttpResponse>(baseUrl, {
       RequestType: "test-associate",
       Key: key,
@@ -147,7 +147,7 @@ export function createKeepassHttpClient(preferences: Preferences) {
   }
 
   async function getLogins(query: string): Promise<KeepassEntry[]> {
-    const key = await ensureKey();
+    const key = await requireSharedKey();
     const payload: Record<string, unknown> = {
       RequestType: "get-logins",
       Key: key,
@@ -163,6 +163,8 @@ export function createKeepassHttpClient(preferences: Preferences) {
   }
 
   return {
+    hasSharedKey,
+    associate,
     testAssociate,
     getLogins,
   };
