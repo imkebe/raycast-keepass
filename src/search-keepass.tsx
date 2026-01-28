@@ -160,9 +160,13 @@ export default function Command() {
       {entries.map((entry) => (
         <List.Item
           key={entry.uuid ?? `${entry.title}-${entry.username ?? "unknown"}`}
+          id={entry.uuid}
           title={entry.title}
           subtitle={entry.username}
-          accessories={entry.url ? [{ icon: Icon.Globe, text: entry.url }] : []}
+          accessories={[
+            ...(entry.group ? [{ icon: Icon.Folder, text: entry.group }] : []),
+            ...(entry.url ? [{ icon: Icon.Globe, text: entry.url }] : []),
+          ]}
           actions={
             <ActionPanel>
               {entry.password ? (
