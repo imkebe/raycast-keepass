@@ -44,6 +44,16 @@ type KeepassHttpResponse = {
 
 const STORAGE_KEY_PREFIX = "keepass-http-shared-key";
 
+export class KeepassAssociationError extends Error {
+  kind: "missing" | "invalid";
+
+  constructor(kind: "missing" | "invalid", message: string) {
+    super(message);
+    this.name = "KeepassAssociationError";
+    this.kind = kind;
+  }
+}
+
 function requireBaseUrl(preferences: Preferences): string {
   const baseUrl = preferences.baseUrl.trim();
   if (!baseUrl) {
@@ -107,6 +117,10 @@ export function createKeepassHttpClient(preferences: Preferences) {
     await LocalStorage.setItem(storageKey, key);
   }
 
+  async function clearSharedKey(): Promise<void> {
+    await LocalStorage.removeItem(storageKey);
+  }
+
   async function associate(): Promise<string> {
     const response = await sendRequest<KeepassHttpResponse>(baseUrl, {
       RequestType: "associate",
@@ -131,7 +145,7 @@ export function createKeepassHttpClient(preferences: Preferences) {
     if (existing) {
       return existing;
     }
-    throw new Error("KeePass HTTP association required.");
+    throw new KeepassAssociationError("missing", "KeePass HTTP association required.");
   }
 
   async function testAssociate(): Promise<void> {
@@ -142,7 +156,10 @@ export function createKeepassHttpClient(preferences: Preferences) {
     });
 
     if (response.Success === false) {
-      throw new Error(response.Error ?? "KeePass HTTP association test failed.");
+      throw new KeepassAssociationError(
+        "invalid",
+        response.Error ?? "KeePass HTTP association test failed.",
+      );
     }
   }
 
@@ -167,5 +184,6 @@ export function createKeepassHttpClient(preferences: Preferences) {
     associate,
     testAssociate,
     getLogins,
+    clearSharedKey,
   };
 }

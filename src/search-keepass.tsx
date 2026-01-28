@@ -9,7 +9,12 @@ import {
 } from "@raycast/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { createKeepassHttpClient, Preferences, type KeepassEntry } from "./keepass-http";
+import {
+  createKeepassHttpClient,
+  KeepassAssociationError,
+  Preferences,
+  type KeepassEntry,
+} from "./keepass-http";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -49,7 +54,10 @@ export default function Command() {
         await client.testAssociate();
         setNeedsAssociation(false);
       } catch (error) {
-        if (error instanceof Error && error.message === "KeePass HTTP association required.") {
+        if (error instanceof KeepassAssociationError) {
+          if (error.kind === "invalid") {
+            await client.clearSharedKey();
+          }
           setNeedsAssociation(true);
           return;
         }
