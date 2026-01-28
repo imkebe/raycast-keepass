@@ -11,6 +11,7 @@ export type KeepassEntry = {
   password?: string;
   url?: string;
   notes?: string;
+  group?: string;
 };
 
 type KeepassHttpEntry = {
@@ -30,6 +31,9 @@ type KeepassHttpEntry = {
   url?: string;
   Notes?: string;
   notes?: string;
+  Group?: string;
+  group?: string;
+  GroupPath?: string;
   StringFields?: Record<string, string>;
 };
 
@@ -98,6 +102,7 @@ function mapEntry(entry: KeepassHttpEntry): KeepassEntry {
     password: entry.password ?? entry.Password ?? stringFields.Password ?? undefined,
     url: entry.url ?? entry.Url ?? entry.URL,
     notes: entry.notes ?? entry.Notes,
+    group: entry.group ?? entry.Group ?? entry.GroupPath,
   };
 }
 
