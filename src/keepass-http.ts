@@ -123,20 +123,27 @@ function mapEntry(entry: KeepassHttpEntry): KeepassEntry {
 export function createKeepassHttpClient(preferences: Preferences) {
   const baseUrl = requireBaseUrl(preferences);
   const storageKey = `${STORAGE_KEY_PREFIX}:${baseUrl}`;
+  let cachedSharedKey: string | null = null;
 
   async function getSharedKey(): Promise<string | null> {
+    if (cachedSharedKey) {
+      return cachedSharedKey;
+    }
     const key = await LocalStorage.getItem<string>(storageKey);
     if (typeof key === "string" && key.trim()) {
+      cachedSharedKey = key.trim();
       return key;
     }
     return null;
   }
 
   async function setSharedKey(key: string): Promise<void> {
+    cachedSharedKey = key;
     await LocalStorage.setItem(storageKey, key);
   }
 
   async function clearSharedKey(): Promise<void> {
+    cachedSharedKey = null;
     await LocalStorage.removeItem(storageKey);
   }
 
