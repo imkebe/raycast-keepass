@@ -18,11 +18,46 @@ import {
 
 const SEARCH_DEBOUNCE_MS = 250;
 
+type KeepassHttpEntry = KeepassEntry & {
+  UUID?: string;
+  Uuid?: string;
+  Name?: string;
+  Title?: string;
+  Login?: string;
+  Username?: string;
+  Password?: string;
+  URL?: string;
+  Url?: string;
+  Notes?: string;
+  Group?: string;
+  GroupPath?: string;
+  StringFields?: Record<string, string>;
+};
+
+const mapEntryForDisplay = (entry: KeepassHttpEntry): KeepassEntry => {
+  const stringFields = entry.StringFields ?? {};
+  return {
+    uuid: entry.uuid ?? entry.UUID ?? entry.Uuid,
+    title: entry.title ?? entry.Title ?? entry.Name ?? "Untitled",
+    username:
+      entry.username ??
+      entry.Username ??
+      entry.Login ??
+      stringFields.UserName ??
+      stringFields.username ??
+      undefined,
+    password: entry.password ?? entry.Password ?? stringFields.Password ?? undefined,
+    url: entry.url ?? entry.Url ?? entry.URL,
+    notes: entry.notes ?? entry.Notes,
+    group: entry.group ?? entry.Group ?? entry.GroupPath,
+  };
+};
+
 export default function Command() {
   const preferences = useMemo(() => getPreferenceValues<Preferences>(), []);
   const client = useMemo(() => createKeepassHttpClient(preferences), [preferences]);
   const [searchText, setSearchText] = useState("");
-  const [entries, setEntries] = useState<KeepassEntry[]>([]);
+  const [entries, setEntries] = useState<KeepassHttpEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [needsAssociation, setNeedsAssociation] = useState<boolean | null>(null);
   const [isAssociating, setIsAssociating] = useState(false);
@@ -157,32 +192,35 @@ export default function Command() {
         ) : undefined
       }
     >
-      {entries.map((entry) => (
-        <List.Item
-          key={entry.uuid ?? `${entry.title}-${entry.username ?? "unknown"}`}
-          id={entry.uuid}
-          title={entry.title}
-          subtitle={entry.username}
-          accessories={[
-            ...(entry.group ? [{ icon: Icon.Folder, text: entry.group }] : []),
-            ...(entry.url ? [{ icon: Icon.Globe, text: entry.url }] : []),
-          ]}
-          actions={
-            <ActionPanel>
-              {entry.password ? (
-                <Action.CopyToClipboard title="Copy Password" content={entry.password} />
-              ) : null}
-              {entry.username ? (
-                <Action.CopyToClipboard title="Copy Username" content={entry.username} />
-              ) : null}
-              {entry.url ? <Action.OpenInBrowser url={entry.url} /> : null}
-              {entry.notes ? (
-                <Action.CopyToClipboard title="Copy Notes" content={entry.notes} />
-              ) : null}
-            </ActionPanel>
-          }
-        />
-      ))}
+      {entries.map((entry) => {
+        const displayEntry = mapEntryForDisplay(entry);
+        return (
+          <List.Item
+            key={displayEntry.uuid ?? `${displayEntry.title}-${displayEntry.username ?? "unknown"}`}
+            id={displayEntry.uuid}
+            title={displayEntry.title}
+            subtitle={displayEntry.username}
+            accessories={[
+              ...(displayEntry.group ? [{ icon: Icon.Folder, text: displayEntry.group }] : []),
+              ...(displayEntry.url ? [{ icon: Icon.Globe, text: displayEntry.url }] : []),
+            ]}
+            actions={
+              <ActionPanel>
+                {displayEntry.password ? (
+                  <Action.CopyToClipboard title="Copy Password" content={displayEntry.password} />
+                ) : null}
+                {displayEntry.username ? (
+                  <Action.CopyToClipboard title="Copy Username" content={displayEntry.username} />
+                ) : null}
+                {displayEntry.url ? <Action.OpenInBrowser url={displayEntry.url} /> : null}
+                {displayEntry.notes ? (
+                  <Action.CopyToClipboard title="Copy Notes" content={displayEntry.notes} />
+                ) : null}
+              </ActionPanel>
+            }
+          />
+        );
+      })}
     </List>
   );
 }
