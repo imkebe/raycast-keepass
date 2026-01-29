@@ -46,6 +46,20 @@ type KeepassHttpResponse = {
   Error?: string;
 };
 
+type KeepassHttpRequest =
+  | {
+      RequestType: "associate";
+    }
+  | {
+      RequestType: "test-associate";
+      Key: string;
+    }
+  | {
+      RequestType: "get-logins";
+      Key: string;
+      Search?: string;
+    };
+
 const STORAGE_KEY_PREFIX = "keepass-http-shared-key";
 
 export class KeepassAssociationError extends Error {
@@ -69,7 +83,7 @@ function requireBaseUrl(preferences: Preferences): string {
 
 async function sendRequest<T extends KeepassHttpResponse>(
   baseUrl: string,
-  body: Record<string, unknown>,
+  body: KeepassHttpRequest,
 ): Promise<T> {
   const response = await fetch(baseUrl, {
     method: "POST",
@@ -170,7 +184,7 @@ export function createKeepassHttpClient(preferences: Preferences) {
 
   async function getLogins(query: string): Promise<KeepassEntry[]> {
     const key = await requireSharedKey();
-    const payload: Record<string, unknown> = {
+    const payload: KeepassHttpRequest = {
       RequestType: "get-logins",
       Key: key,
     };
